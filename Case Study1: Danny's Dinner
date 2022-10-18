@@ -1,0 +1,134 @@
+LINK TO PROBLEM STATEMENT,ER DIAGRAM AND SQL SCRIPT
+https://8weeksqlchallenge.com/case-study-1/
+
+1. What is the total amount each customer spent at the restaurant? 
+
+SELECT customer_id,SUM(price) AS total_spent
+FROM sales
+JOIN menu
+USING(product_id)
+GROUP BY customer_id;
+
+
+2. How many days has each customer visited the restaurant?
+
+SELECT customer_id, COUNT(DISTINCT order_date) AS no_of_visits
+FROM sales
+GROUP BY customer_id;
+
+
+3. What was the first item from the menu purchased by each customer?
+
+WITH CTE AS(SELECT customer_id,
+RANK() OVER(PARTITION BY customer_id ORDER BY order_date) AS ranking,
+product_name
+FROM sales
+JOIN menu
+USING(product_id))
+
+SELECT customer_id, product_name
+FROM CTE
+WHERE ranking = 1
+GROUP BY customer_id,product_name;
+
+
+4. What is the most purchased item on the menu and how many times was it purchased by all customers? 
+
+SELECT product_name, COUNT(*) AS no_of_times
+FROM sales
+JOIN menu
+USING(product_id)
+GROUP BY product_name
+ORDER BY no_of_times DESC
+LIMIT 1;
+
+
+5.Which item was the most popular for each customer?
+
+WITH CTE AS(SELECT customer_id,product_name,COUNT(product_id) OVER(PARTITION BY customer_id,product_id) AS order_counts
+FROM sales
+JOIN menu
+USING(product_id)),
+
+CTE2 AS(SELECT *,
+RANK() OVER(PARTITION BY customer_id ORDER BY order_counts DESC) AS ranking
+FROM CTE)
+
+
+SELECT DISTINCT customer_id,product_name,order_counts
+FROM CTE2
+WHERE ranking = 1;
+
+
+6. Which item was purchased first by the customer after they became a member
+
+WITH CTE AS(SELECT *,
+RANK() OVER(PARTITION BY customer_id ORDER BY order_date) AS ranking
+FROM sales
+JOIN members
+USING(customer_id)
+JOIN menu
+USING(product_id)
+WHERE order_date >= join_date)
+
+SELECT customer_id,product_name
+FROM CTE 
+WHERE ranking = 1;
+
+
+7.Which item was purchased just before the customer became a member?
+
+WITH CTE AS(SELECT *,
+RANK() OVER(PARTITION BY customer_id ORDER BY order_date DESC) AS ranking
+FROM members
+LEFT JOIN sales
+USING(customer_id)
+JOIN menu
+USING(product_id)
+WHERE order_date < join_date)
+
+SELECT customer_id,product_name
+FROM CTE
+WHERE ranking = 1;
+
+
+8.What is the total items and amount spent for each member before they became a member?
+
+SELECT customer_id,COUNT(DISTINCT product_id) AS total_items,SUM(price) AS amount_spent
+FROM members
+LEFT JOIN sales
+USING(customer_id)
+JOIN menu
+USING(product_id)
+WHERE order_date < join_date
+GROUP BY customer_id
+ORDER BY customer_id;
+
+
+9.If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+
+SELECT customer_id,
+SUM(CASE WHEN product_name = 'sushi' THEN price*20 ELSE price*10 END) AS total_points
+FROM sales
+JOIN menu
+USING(product_id)
+GROUP BY customer_id;
+
+
+10.In the first week after a customer joins the program (including their join date) they earn 2x points on all items,
+not just sushi - how many points do customer A and B have at the end of January?
+
+WITH CTE AS(SELECT *,timestampdiff(WEEK,order_date,join_date) AS weeks
+FROM members
+LEFT JOIN sales
+USING(customer_id)
+JOIN menu
+USING(product_id)
+WHERE order_date >= join_date)
+
+SELECT customer_id,
+SUM(CASE WHEN weeks = 1 THEN price*20 
+WHEN product_name = 'sushi' THEN price*20 ELSE price*10 END) AS total_points
+FROM CTE 
+GROUP BY customer_id
+ORDER BY customer_id
