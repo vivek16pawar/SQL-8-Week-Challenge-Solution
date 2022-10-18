@@ -1,6 +1,12 @@
 LINK TO PROBLEM STATEMENT,ER DIAGRAM AND SQL SCRIPT
 https://8weeksqlchallenge.com/case-study-1/
 
+LINK TO MEDIUM BLOG WITH EXPLAINATION ON SQL CASE STUDY
+https://medium.com/@vivekpawar.data/sql-challenge-case-study-1-dannys-diner-solution-84936615bd04
+
+FOLLOW ME ON MEDIUM
+https://medium.com/@vivekpawar.data
+
 1. What is the total amount each customer spent at the restaurant? 
 
 SELECT customer_id,SUM(price) AS total_spent
