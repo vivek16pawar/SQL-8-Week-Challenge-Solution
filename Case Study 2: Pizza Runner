@@ -28,7 +28,7 @@ WHERE distance <> 'null'
 GROUP BY pizza_name;
 
 
-5.How many Vegetarian and Meatlovers were ordered by each customer?
+5.How many Vegetarian and Meatlovers were ordered by each customer
 SELECT customer_id,
 SUM(CASE WHEN pizza_name = 'Vegetarian' THEN 1 ELSE 0 END) AS veg_orders,
 SUM(CASE WHEN pizza_name = 'Meatlovers' THEN 1 ELSE 0 END) AS meat_orders
