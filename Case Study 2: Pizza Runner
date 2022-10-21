@@ -1,3 +1,81 @@
+
+CLEANING UP THE TABLES
+
+DROP TABLE IF EXISTS customer_orders1;
+CREATE TABLE customer_orders1 AS
+(SELECT * FROM customer_orders);
+
+-- Cleaning data
+UPDATE customer_orders1
+SET 
+exclusions = CASE WHEN exclusions = 'null' THEN NULL ELSE exclusions END,
+extras = CASE WHEN extras = 'null' THEN NULL ELSE extras END;
+
+UPDATE customer_orders1
+SET 
+exclusions = CASE WHEN exclusions = '' THEN NULL ELSE exclusions END,
+extras = CASE WHEN extras = '' THEN NULL ELSE extras END;
+SELECT *
+FROM customer_orders1;
+
+
+SELECT *
+FROM customer_orders1;
+
+
+DROP TABLE IF EXISTS runner_orders1;
+CREATE TABLE runner_orders1 AS
+(select *
+from runner_orders);
+
+UPDATE runner_orders1
+SET 
+cancellation = CASE WHEN cancellation = 'null' OR '' THEN NULL ELSE cancellation END,
+duration = CASE WHEN duration = 'null' THEN NULL ELSE duration END,
+distance = CASE WHEN distance = 'null' THEN NULL ELSE distance END,
+pickup_time = CASE WHEN pickup_time = 'null' THEN NULL ELSE pickup_time END;
+
+UPDATE runner_orders1
+SET
+duration =  
+LEFT(duration, 2)
+;
+
+UPDATE runner_orders1
+SET distance = 
+REPLACE(distance,'km','');
+
+ALTER TABLE runner_orders1 
+MODIFY COLUMN distance DECIMAL(5,1) NULL,
+MODIFY COLUMN duration INT NULL;
+
+SELECT * FROM runner_orders1
+
+drop table if exists pizza_recipes1;
+create table pizza_recipes1 
+(
+ pizza_id int,
+    toppings int);
+insert into pizza_recipes1
+(pizza_id, toppings) 
+values
+(1,1),
+(1,2),
+(1,3),
+(1,4),
+(1,5),
+(1,6),
+(1,8),
+(1,10),
+(2,4),
+(2,6),
+(2,7),
+(2,9),
+(2,11),
+(2,12);
+
+
+
 PART 1
 PIZZA METRICS
 
