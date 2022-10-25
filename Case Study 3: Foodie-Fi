@@ -1,0 +1,108 @@
+
+
+
+1. How many customers has Foodie-Fi ever had?
+SELECT COUNT(DISTINCT customer_id) AS no_of_customers
+FROM subscriptions;
+
+2. What is the monthly distribution of trial plan start_date values for our dataset - use the start of the month as the group by value
+SELECT MONTH(start_date) AS Months,MONTHNAME(start_date)AS Month_Name, COUNT(DISTINCT customer_id) AS monthly_distribution
+FROM subscriptions
+WHERE plan_id = 0
+GROUP BY MONTH(start_date)
+ORDER BY Months;
+
+3. What plan start_date values occur after the year 2020 for our dataset? Show the breakdown by count of events for each plan_name
+SELECT plan_id,plan_name,COUNT(customer_id) AS count_of_event
+FROM plans
+JOIN subscriptions
+USING(plan_id)
+WHERE YEAR(start_date) > 2020
+GROUP BY plan_id
+ORDER BY plan_id;
+
+4. What is the customer count and percentage of customers who have churned rounded to 1 decimal place?
+SELECT COUNT(customer_id) AS customer_count,
+ROUND(COUNT(customer_id)*100/(SELECT COUNT(DISTINCT customer_id) FROM subscriptions),1) AS percentage_churn
+FROM subscriptions
+WHERE plan_id = 4;
+
+5. How many customers have churned straight after their initial free trial - what percentage is this rounded to the nearest whole number?
+WITH CTE AS(SELECT *,
+DENSE_RANK() OVER(PARTITION BY customer_id ORDER BY plan_id) AS ranking
+FROM subscriptions)
+
+SELECT COUNT(*) AS no_of_customers,
+FLOOR(COUNT(*)*100/(SELECT COUNT(DISTINCT customer_id) FROM subscriptions)) AS percentage_churn 
+FROM CTE
+WHERE plan_id = 4 AND ranking = 2;
+
+6. What is the number and percentage of customer plans after their initial free trial?
+WITH CTE AS(SELECT *,
+LEAD(plan_id,1) OVER(PARTITION BY customer_id ORDER BY plan_id) AS rn
+FROM subscriptions)
+
+SELECT rn AS upgraded_to,COUNT(*) AS no_of_conversion,
+ROUND(COUNT(*)*100/(SELECT COUNT(DISTINCT customer_id) FROM subscriptions),1) AS percentage_conversion
+FROM CTE
+WHERE rn IS NOT NULL
+AND plan_id = 0
+GROUP BY rn;
+
+7. What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?
+WITH CTE AS(SELECT *,
+LEAD(plan_id,1) OVER(PARTITION BY customer_id ORDER BY plan_id) AS leads
+FROM subscriptions
+WHERE start_date <= '2020-12-31')
+
+SELECT plan_id,COUNT(*) AS customer_counts,
+ROUND(COUNT(*)*100/(SELECT COUNT(DISTINCT customer_id) FROM subscriptions),1) AS percentage_breakdown
+FROM CTE
+WHERE leads IS NULL
+GROUP BY plan_id
+ORDER BY plan_id;
+
+8. How many customers have upgraded to an annual plan in 2020?
+SELECT COUNT(DISTINCT customer_id) AS no_customer_upgrade_to_annual
+FROM subscriptions
+WHERE plan_id = 3 AND year(start_date) = 2020;
+
+9. How many days on average does it take for a customer to an annual plan from the day they join Foodie-Fi?
+
+WITH CTE AS(SELECT customer_id,start_date AS trial_date
+FROM subscriptions
+WHERE plan_id = 0),
+CTE2 AS(SELECT customer_id,start_date AS annual_date
+FROM subscriptions
+WHERE plan_id = 3)
+SELECT ROUND(AVG(DATEDIFF(annual_date, trial_date)),0) AS avg_days_required
+FROM CTE
+JOIN CTE2
+USING(customer_id);
+
+10. Can you further breakdown this average value into 30 day periods (i.e. 0-30 days, 31-60 days etc)
+WITH CTE AS(SELECT customer_id,start_date AS annual_date
+FROM subscriptions
+WHERE plan_id = 3),
+CTE2 AS(SELECT customer_id,start_date AS trial_date
+FROM subscriptions
+WHERE plan_id = 0),
+day_periods AS(SELECT DATEDIFF(annual_date,trial_date) AS days
+FROM CTE
+JOIN CTE2
+USING(customer_id)),
+bins AS(SELECT *, FLOOR(days/30) AS bins
+FROM day_periods)
+SELECT CONCAT((bins*30) + 1,' - ',(bins + 1)*30,'days') AS no_of_days,
+COUNT(days) AS total
+FROM bins
+GROUP BY bins;
+
+
+11. How many customers downgraded from a pro monthly to a basic monthly plan in 2020?
+WITH CTE AS(SELECT customer_id,plan_id,
+lead(plan_id,1) OVER(PARTITION BY customer_id ORDER BY start_date) AS leads
+FROM subscriptions)
+SELECT COUNT(*) AS no_csutomer_downgrade
+FROM CTE
+WHERE plan_id = 2 AND leads = 1
